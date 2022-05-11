@@ -10,11 +10,8 @@ namespace Saber
             public class PckEntry
             {
                 public long   Offset { get; set; }
-                public long   Size   {
-                    get { return _data is null ? 0 : _data.Length; }
-                    set { _data = new byte[value]; } 
-                }
-                public bool HasData{ get { return _data is null; } }
+                public long   Size   { get; set; }
+                public bool HasData{ get { return _data is not null; } }
 
                 // Data gets set when size gets set.
                 private byte[]? _data;
@@ -30,8 +27,8 @@ namespace Saber
                 public byte[] Data(in BinaryReader stream)
                 {
                     // If we haven't initialized the size property we have nothing to load
-                    if (HasData)
-                        throw new ArgumentNullException();
+                    if (!HasData)
+                        _data = new byte[Size];
 
                     // If we haven't previously loaded the data
                     if (!_initialized)
