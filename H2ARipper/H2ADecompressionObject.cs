@@ -34,18 +34,6 @@ namespace Saber
             private const int  CHUNK_SIZE = 0x8000;
             private const int  MAX_CHUNKS_CNT = (HEADER_SIZE - sizeof(long)) / sizeof(long);         // 0xBFFFF = (Header size - (count & compressed flag)) / sizeof Offsets
 
-            // CHANGING CACHE SIZE WILL CLEAR THE CACHE
-            private long _cacheSize = 0x0;
-            public long ChacheSize
-            {
-                get { return _cacheSize; }
-                protected set
-                {
-                    _cacheSize = value;
-                    _cache = new byte[value];
-                }
-            }
-
             // Load from file
             public H2ADecompressionStream(in string file)
             {
@@ -90,7 +78,7 @@ namespace Saber
             public override long Seek(long offset, SeekOrigin origin)
             {
                 // Bounds checking
-                if (offset > Length)
+                if (offset > (_isCompressed ? _cache.Length : Parser.BaseStream.Length))
                     throw new OverflowException();
 
                 switch (origin)
@@ -205,7 +193,7 @@ namespace Saber
             protected void AllocateMemory(in int count)
             {
                 if (count > 0)
-                    ChacheSize = (count * CHUNK_SIZE);
+                    _cache = new byte[count * CHUNK_SIZE];
                 _alreadyDecompressed = new List<bool>(new bool[count]);
             }
 
@@ -260,7 +248,8 @@ namespace Saber
                     Offsets[i] = Parser.ReadInt64();
                 Offsets[count] = FileHandle.Length;
 
-                AllocateMemory(count);
+                if(_isCompressed)
+                    AllocateMemory(count);
             }
 
             private void ValidateStream()
